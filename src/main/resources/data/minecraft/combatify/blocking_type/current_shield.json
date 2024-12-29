@@ -1,0 +1,11 @@
+{
+  "damage_parsers": [
+    {
+      "type": "minecraft:nullify"
+    }
+  ],
+  "protection_modifiers": [],
+  "knockback_modifiers": [],
+  "mark_blocked": true,
+  "data": {}
+}

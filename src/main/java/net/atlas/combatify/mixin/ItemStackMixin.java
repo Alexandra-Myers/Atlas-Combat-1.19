@@ -45,8 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import static net.atlas.combatify.util.MethodHandler.getBlocking;
-import static net.atlas.combatify.util.MethodHandler.getBlockingType;
+import static net.atlas.combatify.util.MethodHandler.getBlocker;
 
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin implements DataComponentHolder {
@@ -100,12 +99,12 @@ public abstract class ItemStackMixin implements DataComponentHolder {
 							ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(piercingLevel * 100),
 							Component.translatable("attribute.name.armor_piercing"))).withStyle(ChatFormatting.DARK_GREEN));
 			}
-			if (getBlocking(this.stack).canShowInTooltip(this.stack, player)) getBlockingType(this.stack).handler().appendTooltipInfo(consumer, player, this.stack);
+			if (getBlocker(this.stack).canShowInTooltip(this.stack, player)) getBlocker(this.stack).appendTooltipInfo(consumer, player, this.stack);
 		}
 	}
 	@ModifyReturnValue(method = "getUseDuration", at = @At(value = "RETURN"))
 	public int getUseDuration(int original) {
-		if (getBlocking(this.stack).canOverrideUseDurationAndAnimation(this.stack)) return getBlocking(this.stack).useTicks();
+		if (getBlocker(this.stack).canOverrideUseDurationAndAnimation(this.stack)) return getBlocker(this.stack).useTicks();
 		if (hasNonDefault(DataComponents.CONSUMABLE)) return original;
 		ConfigurableItemData configurableItemData = MethodHandler.forItem(getItem());
 		if (configurableItemData != null) {
@@ -118,7 +117,7 @@ public abstract class ItemStackMixin implements DataComponentHolder {
 	public InteractionResult addBlockAbility(InteractionResult original, @Local(ordinal = 0, argsOnly = true) UseOnContext useOnContext) {
 		InteractionResult holder;
 		ItemStack stack = Objects.requireNonNull(useOnContext.getPlayer()).getItemInHand(useOnContext.getHand());
-		holder = getBlocking(stack).use(stack, useOnContext.getLevel(), useOnContext.getPlayer(), useOnContext.getHand(), original);
+		holder = getBlocker(stack).use(stack, useOnContext.getLevel(), useOnContext.getPlayer(), useOnContext.getHand(), original);
 		if (holder != null)
 			return holder;
 		return original;
@@ -126,14 +125,14 @@ public abstract class ItemStackMixin implements DataComponentHolder {
 
 	@ModifyReturnValue(method = "use", at = @At(value = "RETURN"))
 	public InteractionResult addBlockAbility(InteractionResult original, @Local(ordinal = 0, argsOnly = true) Level world, @Local(ordinal = 0, argsOnly = true) Player player, @Local(ordinal = 0, argsOnly = true) InteractionHand hand) {
-		InteractionResult holder = getBlocking(stack).use(stack, world, player, hand, original);
+		InteractionResult holder = getBlocker(stack).use(stack, world, player, hand, original);
 		if (holder != null)
 			return holder;
 		return original;
 	}
 	@ModifyReturnValue(method = "getUseAnimation", at = @At(value = "RETURN"))
 	public ItemUseAnimation addBlockAnim(ItemUseAnimation original) {
-		if (getBlocking(this.stack).canOverrideUseDurationAndAnimation(this.stack))
+		if (getBlocker(this.stack).canOverrideUseDurationAndAnimation(this.stack))
 			return ItemUseAnimation.BLOCK;
 		return original;
 	}

@@ -1,0 +1,35 @@
+{
+  "damage_parsers": [
+    {
+      "type": "minecraft:percentage_limit"
+    }
+  ],
+  "protection_modifiers": [
+    {
+      "effect": {
+        "tooltip": {
+          "translate": "attribute.modifier.equals.2",
+          "with": [
+            {
+              "translate": "attribute.name.damage_reduction"
+            }
+          ]
+        },
+        "modifier": {
+          "type": "minecraft:add",
+          "value": 50
+        }
+      }
+    }
+  ],
+  "knockback_modifiers": [],
+  "mark_blocked": false,
+  "data": {
+    "can_be_disabled": false,
+    "can_crouch_block": false,
+    "can_block_hit": true,
+    "requires_full_charge": false,
+    "default_kb_mechanics": true,
+    "has_shield_delay": false
+  }
+}

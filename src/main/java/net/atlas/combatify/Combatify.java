@@ -18,7 +18,6 @@ import net.atlas.combatify.item.TieredShieldItem;
 import net.atlas.combatify.item.WeaponType;
 import net.atlas.combatify.networking.NetworkingHandler;
 import net.atlas.combatify.util.MethodHandler;
-import net.atlas.combatify.util.blocking.BlockingType;
 import net.atlas.combatify.util.blocking.BlockingTypeInit;
 import net.atlas.combatify.util.blocking.condition.BlockingConditions;
 import net.atlas.combatify.util.blocking.effect.PostBlockEffects;
@@ -76,12 +75,9 @@ public class Combatify implements ModInitializer {
 	public static final Object2ObjectOpenHashMap<Holder<Item>, Tier> originalTiers = new Object2ObjectOpenHashMap<>();
 	public static final Map<UUID, Boolean> isPlayerAttacking = new HashMap<>();
 	public static final Map<String, WeaponType> defaultWeaponTypes = new HashMap<>();
-	public static final Map<ResourceLocation, BlockingType> defaultTypes = new HashMap<>();
 	public static final BiMap<String, Tier> defaultTiers = HashBiMap.create();
 	public static Map<String, WeaponType> registeredWeaponTypes = new HashMap<>();
-	public static Map<ResourceLocation, BlockingType> registeredTypes = new HashMap<>();
 	public static BiMap<String, Tier> tiers = HashBiMap.create();
-	public static BiMap<ResourceLocation, BlockingType.Factory> registeredTypeFactories = HashBiMap.create();
 	public static final PrefixLogger LOGGER = new PrefixLogger(LogManager.getLogger("Combatify"));
 	public static final ResourceLocation CHARGED_REACH_ID = id("charged_reach");
 
@@ -186,23 +182,11 @@ public class Combatify implements ModInitializer {
 	public static void registerWeaponType(WeaponType weaponType) {
 		Combatify.registeredWeaponTypes.put(weaponType.name(), weaponType);
     }
-	public static <T extends BlockingType> T registerBlockingType(T blockingType) {
-		Combatify.registeredTypes.put(blockingType.name(), blockingType);
-		return blockingType;
-	}
 	public static ResourceLocation id(String path) {
 		return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
 	}
 	public static void defineDefaultWeaponType(WeaponType type) {
 		defaultWeaponTypes.put(type.name(), type);
-	}
-	public static BlockingType.Factory defineBlockingTypeFactory(ResourceLocation name, BlockingType.Factory factory) {
-		registeredTypeFactories.put(name, factory);
-		return factory;
-	}
-	public static BlockingType defineDefaultBlockingType(BlockingType blockingType) {
-		defaultTypes.put(blockingType.name(), blockingType);
-		return registerBlockingType(blockingType);
 	}
 	public static void defineDefaultTier(String name, Tier tier) {
 		defaultTiers.put(name, tier);

@@ -1,0 +1,77 @@
+{
+  "damage_parsers": [
+    {
+      "type": "minecraft:direct"
+    },
+    {
+      "type": "minecraft:nullify",
+      "requirements": {
+        "condition": "minecraft:any_of",
+        "terms": [
+          {
+            "condition": "minecraft:damage_source_properties",
+            "predicate": {
+              "tags": [
+                {
+                  "expected": true,
+                  "id": "minecraft:is_projectile"
+                }
+              ]
+            }
+          },
+          {
+            "condition": "minecraft:damage_source_properties",
+            "predicate": {
+              "tags": [
+                {
+                  "expected": true,
+                  "id": "minecraft:is_explosion"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "protection_modifiers": [
+    {
+      "effect": {
+        "tooltip": {
+          "translate": "attribute.modifier.equals.0",
+          "with": [
+            {
+              "translate": "attribute.name.shield_strength"
+            }
+          ]
+        },
+        "modifier": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 5,
+            "per_level_above_first": 1
+          }
+        }
+      }
+    }
+  ],
+  "knockback_modifiers": [
+    {
+      "tooltip": {
+        "translate": "attribute.modifier.equals.0",
+        "with": [
+          {
+            "translate": "attribute.name.knockback_resistance"
+          }
+        ]
+      },
+      "modifier": {
+        "type": "minecraft:add",
+        "value": 5
+      }
+    }
+  ],
+  "mark_blocked": true,
+  "data": {}
+}

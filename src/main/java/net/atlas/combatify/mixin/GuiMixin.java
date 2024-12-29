@@ -4,6 +4,7 @@ import net.atlas.combatify.Combatify;
 import net.atlas.combatify.CombatifyClient;
 import net.atlas.combatify.config.ShieldIndicatorStatus;
 import net.atlas.combatify.util.MethodHandler;
+import net.atlas.combatify.util.blocking.BlockingType;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -29,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-import static net.atlas.combatify.util.MethodHandler.getBlockingType;
+import static net.atlas.combatify.util.MethodHandler.*;
 
 @Mixin(Gui.class)
 public abstract class GuiMixin {
@@ -173,8 +174,8 @@ public abstract class GuiMixin {
 		assert minecraft.player != null;
 		ItemStack offHandStack = this.minecraft.player.getItemInHand(InteractionHand.OFF_HAND);
 		ItemStack mainHandStack = this.minecraft.player.getItemInHand(InteractionHand.MAIN_HAND);
-		boolean offHandShieldCooldown = this.minecraft.player.getCooldowns().isOnCooldown(offHandStack) && !getBlockingType(offHandStack).isEmpty();
-		boolean mainHandShieldCooldown = this.minecraft.player.getCooldowns().isOnCooldown(mainHandStack) && !getBlockingType(mainHandStack).isEmpty();
+		boolean offHandShieldCooldown = this.minecraft.player.getCooldowns().isOnCooldown(offHandStack) && !getBlocker(offHandStack).isEmpty();
+		boolean mainHandShieldCooldown = this.minecraft.player.getCooldowns().isOnCooldown(mainHandStack) && !getBlocker(mainHandStack).isEmpty();
 		return offHandShieldCooldown || mainHandShieldCooldown;
 	}
 	@Unique
@@ -182,6 +183,6 @@ public abstract class GuiMixin {
 		if (this.minecraft.player == null)
 			return false;
 		ItemStack itemStack = MethodHandler.getBlockingItem(this.minecraft.player).stack();
-		return getBlockingType(itemStack).hasDelay() && Combatify.CONFIG.shieldDelay() > 0 && itemStack.getUseDuration(this.minecraft.player) - this.minecraft.player.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
+		return getBlockingData(itemStack, this.minecraft.player.level(), BlockingType::hasDelay) && Combatify.CONFIG.shieldDelay() > 0 && itemStack.getUseDuration(this.minecraft.player) - this.minecraft.player.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
 	}
 }

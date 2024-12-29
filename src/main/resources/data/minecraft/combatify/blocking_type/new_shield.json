@@ -1,0 +1,105 @@
+{
+  "damage_parsers": [
+    {
+      "type": "minecraft:percentage"
+    },
+    {
+      "type": "minecraft:nullify",
+      "requirements": {
+        "condition": "minecraft:any_of",
+        "terms": [
+          {
+            "condition": "minecraft:damage_source_properties",
+            "predicate": {
+              "tags": [
+                {
+                  "expected": true,
+                  "id": "minecraft:is_projectile"
+                }
+              ]
+            }
+          },
+          {
+            "condition": "minecraft:damage_source_properties",
+            "predicate": {
+              "tags": [
+                {
+                  "expected": true,
+                  "id": "minecraft:is_explosion"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "protection_modifiers": [
+    {
+      "effect": {
+        "tooltip": {
+          "translate": "attribute.modifier.equals.2",
+          "with": [
+            {
+              "translate": "attribute.name.shield_reduction"
+            }
+          ]
+        },
+        "modifier": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 30,
+            "per_level_above_first": 5
+          }
+        }
+      }
+    }
+  ],
+  "knockback_modifiers": [
+    {
+      "tooltip": {
+        "translate": "attribute.modifier.equals.0",
+        "with": [
+          {
+            "translate": "attribute.name.knockback_resistance"
+          }
+        ]
+      },
+      "modifier": {
+        "type": "minecraft:add",
+        "value": 2.5
+      }
+    },
+    {
+      "tooltip": {
+        "translate": "attribute.modifier.equals.0",
+        "with": [
+          {
+            "translate": "attribute.name.knockback_resistance"
+          }
+        ]
+      },
+      "modifier": {
+        "type": "minecraft:add",
+        "value": 2.5
+      },
+      "show_in_tooltip": {
+        "condition": "minecraft:item_matches",
+        "predicate": {
+          "predicates": {
+            "combatify:blocking_level": {
+              "value": {
+                "min": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "mark_blocked": true,
+  "data": {
+    "default_kb_mechanics": false
+  }
+}

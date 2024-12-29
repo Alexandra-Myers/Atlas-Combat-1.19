@@ -17,6 +17,6 @@ public class ShieldItemMixin {
 	@Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
 	public void removeBlockingIfNotMet(Level level, Player player, InteractionHand interactionHand, CallbackInfoReturnable<InteractionResult> cir) {
 		ItemStack heldItem = player.getItemInHand(interactionHand);
-		if (!MethodHandler.getBlocking(heldItem).canUse(heldItem, level, player, interactionHand)) cir.setReturnValue(InteractionResult.PASS);
+		if (!MethodHandler.getBlocker(heldItem).canUse(heldItem, level, player, interactionHand)) cir.setReturnValue(InteractionResult.PASS);
 	}
 }

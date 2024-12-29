@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.atlas.combatify.Combatify;
 import net.atlas.combatify.CombatifyClient;
+import net.atlas.combatify.util.blocking.BlockingType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Options;
@@ -26,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static net.atlas.combatify.util.MethodHandler.getBlockingType;
+import static net.atlas.combatify.util.MethodHandler.*;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
@@ -80,11 +81,9 @@ public abstract class MinecraftMixin {
 		if (!original) return false;
 		if (player != null) {
 			ItemStack stack = player.getUseItem();
-			boolean bl = getBlockingType(stack).canBlockHit() && !getBlockingType(stack).isEmpty();
-			if (bl && this.player.combatify$isAttackAvailable(0.0F))
+			if (getBlockingData(stack, player.level(), BlockingType::canBlockHit) && this.player.combatify$isAttackAvailable(0.0F))
 				if (hitResult != null && hitResult.getType() == HitResult.Type.BLOCK)
 					startAttack();
-			return bl;
 		}
 		return true;
 	}

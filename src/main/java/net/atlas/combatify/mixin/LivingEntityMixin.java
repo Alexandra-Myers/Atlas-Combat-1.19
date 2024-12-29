@@ -36,7 +36,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.UUID;
 
-import static net.atlas.combatify.util.MethodHandler.getBlocking;
+import static net.atlas.combatify.util.MethodHandler.getBlocker;
 
 @Mixin(value = LivingEntity.class, priority = 1400)
 public abstract class LivingEntityMixin extends Entity implements LivingEntityExtensions {
@@ -97,7 +97,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	public boolean shield(LivingEntity instance, DamageSource source, Operation<Boolean> original, @Local(ordinal = 0, argsOnly = true) ServerLevel serverLevel, @Local(ordinal = 0, argsOnly = true) LocalFloatRef amount, @Local(ordinal = 2) LocalFloatRef protectedDamage, @Local(ordinal = 0) LocalBooleanRef wasBlocked, @Share("blocked") LocalBooleanRef blocked) {
 		ItemStack itemStack = MethodHandler.getBlockingItem(thisEntity).stack();
 		if (amount.get() > 0.0F && original.call(instance, source)) {
-			getBlocking(itemStack).block(serverLevel, instance, source, itemStack, amount, protectedDamage, wasBlocked);
+			getBlocker(itemStack).block(serverLevel, instance, source, itemStack, amount, protectedDamage, wasBlocked);
 		}
 		blocked.set(wasBlocked.get());
 		return false;

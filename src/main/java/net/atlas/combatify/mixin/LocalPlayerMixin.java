@@ -46,9 +46,9 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer implements P
 	@Shadow
 	public abstract boolean isUsingItem();
 
-	@Unique
+	@Shadow
 	@Final
-	public Minecraft minecraft = Minecraft.getInstance();
+	protected final Minecraft minecraft = Minecraft.getInstance();
 
 	@Unique
 	LocalPlayer thisPlayer = (LocalPlayer)(Object)this;

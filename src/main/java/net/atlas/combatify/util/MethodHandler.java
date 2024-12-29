@@ -5,10 +5,7 @@ import net.atlas.combatify.Combatify;
 import net.atlas.combatify.component.CustomDataComponents;
 import net.atlas.combatify.component.custom.Blocker;
 import net.atlas.combatify.component.custom.CanSweep;
-import net.atlas.combatify.config.ArmourVariable;
-import net.atlas.combatify.config.ConfigurableEntityData;
-import net.atlas.combatify.config.ConfigurableItemData;
-import net.atlas.combatify.config.ConfigurableWeaponData;
+import net.atlas.combatify.config.*;
 import net.atlas.combatify.config.item.ArmourStats;
 import net.atlas.combatify.config.item.BlockingInformation;
 import net.atlas.combatify.config.item.WeaponStats;
@@ -19,7 +16,9 @@ import net.atlas.combatify.item.TieredShieldItem;
 import net.atlas.combatify.item.WeaponType;
 import net.atlas.combatify.mixin.LivingEntityAccessor;
 import net.atlas.combatify.util.blocking.BlockingType;
+import net.atlas.combatify.util.blocking.BlockingTypeInit;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -56,6 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static net.minecraft.world.entity.LivingEntity.getSlotForHand;
 
@@ -113,13 +113,13 @@ public class MethodHandler {
 		}
 		double knockbackRes = entity.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
 		ItemStack blockingItem = getBlockingItem(entity).stack();
-		boolean delay = getBlockingType(blockingItem).hasDelay() && Combatify.CONFIG.shieldDelay() > 0 && blockingItem.getUseDuration(entity) - entity.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
+		Blocker blocker = getBlocker(blockingItem);
+		boolean delay = getBlockingData(blockingItem, entity.level(), BlockingType::hasDelay) && Combatify.CONFIG.shieldDelay() > 0 && blockingItem.getUseDuration(entity) - entity.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
 		if (!blockingItem.isEmpty() && !delay) {
-			BlockingType blockingType = getBlockingType(blockingItem);
-			if (!blockingType.defaultKbMechanics())
-				knockbackRes = Math.max(knockbackRes, blockingType.handler().getShieldKnockbackResistanceValue(blockingItem, entity.getRandom()));
+			if (!getBlockingData(blockingItem, entity.level(), BlockingType::defaultKbMechanics))
+				knockbackRes = Math.max(knockbackRes, blocker.getShieldKnockbackResistanceValue(blockingItem, entity.level(), entity.getRandom()));
 			else
-				knockbackRes = Math.min(1.0, knockbackRes + blockingType.handler().getShieldKnockbackResistanceValue(blockingItem, entity.getRandom()));
+				knockbackRes = Math.min(1.0, knockbackRes + blocker.getShieldKnockbackResistanceValue(blockingItem, entity.level(), entity.getRandom()));
 		}
 
 		strength *= 1.0 - knockbackRes;
@@ -133,13 +133,13 @@ public class MethodHandler {
 	public static void projectileKnockback(LivingEntity entity, double strength, double x, double z) {
 		double knockbackRes = entity.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
 		ItemStack blockingItem = getBlockingItem(entity).stack();
-		boolean delay = getBlockingType(blockingItem).hasDelay() && Combatify.CONFIG.shieldDelay() > 0 && blockingItem.getUseDuration(entity) - entity.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
+		Blocker blocker = getBlocker(blockingItem);
+		boolean delay = getBlockingData(blockingItem, entity.level(), BlockingType::hasDelay) && Combatify.CONFIG.shieldDelay() > 0 && blockingItem.getUseDuration(entity) - entity.getUseItemRemainingTicks() < Combatify.CONFIG.shieldDelay();
 		if (!blockingItem.isEmpty() && !delay) {
-			BlockingType blockingType = getBlockingType(blockingItem);
-			if (!blockingType.defaultKbMechanics())
-				knockbackRes = Math.max(knockbackRes, blockingType.handler().getShieldKnockbackResistanceValue(blockingItem, entity.getRandom()));
+			if (!getBlockingData(blockingItem, entity.level(), BlockingType::defaultKbMechanics))
+				knockbackRes = Math.max(knockbackRes, blocker.getShieldKnockbackResistanceValue(blockingItem, entity.level(), entity.getRandom()));
 			else
-				knockbackRes = Math.min(1.0, knockbackRes + blockingType.handler().getShieldKnockbackResistanceValue(blockingItem, entity.getRandom()));
+				knockbackRes = Math.min(1.0, knockbackRes + blocker.getShieldKnockbackResistanceValue(blockingItem, entity.level(), entity.getRandom()));
 		}
 
 		strength *= 1.0 - knockbackRes;
@@ -295,14 +295,14 @@ public class MethodHandler {
 				}
 			}
 		}
-		if (canDisable && damage > 0 && getBlockingType(blockingItem).canBeDisabled()) {
+		if (canDisable && damage > 0 && getBlockingData(blockingItem, attacker.level(), BlockingType::canBeDisabled)) {
 			if (piercingLevel > 0)
 				attacker.combatify$setPiercingNegation(piercingLevel);
 			disableShield(target, damage, blockingItem);
 		}
 	}
 	public static void arrowDisable(LivingEntity target, DamageSource damageSource, AbstractArrow abstractArrow, ItemStack blockingItem) {
-		if (!getBlockingType(blockingItem).canBeDisabled()) return;
+		if (!getBlockingData(blockingItem, target.level(), BlockingType::canBeDisabled)) return;
 		float damage = Combatify.CONFIG.shieldDisableTime().floatValue();
 		ConfigurableEntityData configurableEntityData;
 		if ((configurableEntityData = forEntity(target)) != null) {
@@ -332,9 +332,9 @@ public class MethodHandler {
 		} else if (((entity.onGround() && entity.isCrouching()) || entity.isPassenger()) && entity.combatify$hasEnabledShieldOnCrouch()) {
 			for (InteractionHand hand : InteractionHand.values()) {
 				ItemStack stack = entity.getItemInHand(hand);
-				boolean stillRequiresCharge = Combatify.CONFIG.shieldOnlyWhenCharged() && entity instanceof Player player && player.getAttackStrengthScale(1.0F) < Combatify.CONFIG.shieldChargePercentage() / 100F && getBlockingType(stack).requireFullCharge();
-				boolean canUse = !(entity instanceof Player player) || getBlocking(stack).canUse(stack, entity.level(), player, hand);
-				if (!stillRequiresCharge && !stack.isEmpty() && stack.getUseAnimation() == ItemUseAnimation.BLOCK && !isItemOnCooldown(entity, stack) && getBlockingType(stack).canCrouchBlock() && canUse) {
+				boolean stillRequiresCharge = Combatify.CONFIG.shieldOnlyWhenCharged() && entity instanceof Player player && player.getAttackStrengthScale(1.0F) < Combatify.CONFIG.shieldChargePercentage() / 100F && getBlockingData(stack, entity.level(), BlockingType::requireFullCharge);
+				boolean canUse = !(entity instanceof Player player) || getBlocker(stack).canUse(stack, entity.level(), player, hand);
+				if (!stillRequiresCharge && !stack.isEmpty() && stack.getUseAnimation() == ItemUseAnimation.BLOCK && !isItemOnCooldown(entity, stack) && getBlockingData(stack, entity.level(), BlockingType::canCrouchBlock) && canUse) {
 					return new FakeUseItem(stack, hand, false);
 				}
 			}
@@ -397,7 +397,7 @@ public class MethodHandler {
 	public static void blockedByShield(ServerLevel serverLevel, LivingEntity target, LivingEntity attacker, DamageSource damageSource) {
 		ItemStack blockingItem = MethodHandler.getBlockingItem(target).stack();
 		EquipmentSlot equipmentSlot = target.getEquipmentSlotForItem(blockingItem);
-		getBlocking(blockingItem).doEffect(serverLevel, equipmentSlot, blockingItem, target, attacker, damageSource);
+		getBlocker(blockingItem).doEffect(serverLevel, equipmentSlot, blockingItem, target, attacker, damageSource);
 	}
 	public static ItemCooldowns createItemCooldowns() {
 		return new ItemCooldowns();
@@ -570,11 +570,17 @@ public class MethodHandler {
 		return source == null ? destination : source;
 	}
 
-	public static BlockingType getBlockingType(ItemStack itemStack) {
-		return getBlocking(itemStack).blockingType();
+	public static Holder<BlockingType> getBlockingTypeHolder(ItemStack itemStack, Level level) {
+		return getBlocker(itemStack).blockingTypeHolder(level.holderLookup(BlockingTypeInit.BLOCKING_TYPE));
 	}
 
-	public static Blocker getBlocking(ItemStack itemStack) {
+	public static Blocker getBlocker(ItemStack itemStack) {
 		return itemStack.getOrDefault(CustomDataComponents.BLOCKER, Blocker.EMPTY);
+	}
+
+	public static boolean getBlockingData(ItemStack itemStack, Level level, Function<BlockingType, Boolean> defaultVal) {
+		Holder<BlockingType> holder = getBlockingTypeHolder(itemStack, level);
+		if (holder == null) return false;
+		return defaultVal.apply(holder.value());
 	}
 }

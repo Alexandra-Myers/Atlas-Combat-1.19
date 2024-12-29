@@ -19,7 +19,6 @@ import net.atlas.combatify.extensions.Tier;
 import net.atlas.combatify.extensions.ToolMaterialWrapper;
 import net.atlas.combatify.item.CombatifyItemTags;
 import net.atlas.combatify.item.WeaponType;
-import net.atlas.combatify.util.blocking.BlockingType;
 import net.atlas.combatify.util.MethodHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -80,7 +79,6 @@ public class ItemConfig extends AtlasConfig {
 	public List<RegistryConfigDataWrapper<Item, ConfigurableItemData>> configuredItems;
 	public List<RawConfigDataWrapper<WeaponType, ConfigurableWeaponData>> configuredWeapons;
 	public static final StreamCodec<RegistryFriendlyByteBuf, String> NAME_STREAM_CODEC = StreamCodec.of(RegistryFriendlyByteBuf::writeUtf, RegistryFriendlyByteBuf::readUtf);
-	public static final StreamCodec<RegistryFriendlyByteBuf, ResourceLocation> RESOURCE_NAME_STREAM_CODEC = StreamCodec.of(RegistryFriendlyByteBuf::writeResourceLocation, RegistryFriendlyByteBuf::readResourceLocation);
 	public static final StreamCodec<RegistryFriendlyByteBuf, Tier> TIERS_STREAM_CODEC = StreamCodec.of((buf, tier) -> {
 		buf.writeVarInt(tier.combatify$blockingLevel());
 		buf.writeVarInt(tier.combatify$weaponLevel());
@@ -179,9 +177,6 @@ public class ItemConfig extends AtlasConfig {
 		if (!object.has("weapon_types"))
 			object.add("weapon_types", new JsonArray());
 		JsonElement weapons = object.get("weapon_types");
-		if (!object.has("blocking_types"))
-			object.add("blocking_types", new JsonArray());
-		JsonElement defenders = object.get("blocking_types");
 		if (!object.has("tiers"))
 			object.add("tiers", new JsonObject());
 		JsonElement tiers = object.get("tiers");
@@ -190,9 +185,6 @@ public class ItemConfig extends AtlasConfig {
 		JsonElement entities = object.get("entities");
 		Combatify.tiers = HashBiMap.create(Combatify.defaultTiers);
 		Combatify.tiers.putAll(TIERS_CODEC.parse(JsonOps.INSTANCE, tiers).getOrThrow());
-		registeredTypes = new HashMap<>(defaultTypes);
-		List<BlockingType> altered = BlockingType.CODEC.listOf().orElse(Collections.emptyList()).parse(JsonOps.INSTANCE, defenders).getOrThrow();
-		altered.forEach(Combatify::registerBlockingType);
 		configuredWeapons = WEAPONS_CODEC_DECODE.codec().listOf().parse(JsonOps.INSTANCE, weapons).getOrThrow();
 		configuredItems = ITEMS_CODEC.codec().listOf().parse(JsonOps.INSTANCE, items).getOrThrow();
 		configuredEntities = ENTITIES_CODEC.codec().listOf().parse(JsonOps.INSTANCE, entities).getOrThrow();
@@ -218,7 +210,6 @@ public class ItemConfig extends AtlasConfig {
 		configuredWeapons = new ArrayList<>();
 		tiers = HashBiMap.create(defaultTiers);
 		registeredWeaponTypes = new HashMap<>(defaultWeaponTypes);
-		registeredTypes = new HashMap<>(defaultTypes);
 	}
 
 	@Override
@@ -236,7 +227,6 @@ public class ItemConfig extends AtlasConfig {
 		super.readClientConfigInformation(buf);
 		HashBiMap.create(readMap(buf, NAME_STREAM_CODEC, TIERS_STREAM_CODEC));
 		readMap(buf, NAME_STREAM_CODEC, REGISTERED_WEAPON_TYPE_STREAM_CODEC);
-		readMap(buf, RESOURCE_NAME_STREAM_CODEC, BlockingType.FULL_STREAM_CODEC);
 		buf.readList(ENTITY_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		buf.readList(ITEM_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		buf.readList(WEAPON_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
@@ -250,7 +240,6 @@ public class ItemConfig extends AtlasConfig {
 		super.loadFromNetwork(buf);
 		tiers = HashBiMap.create(readMap(buf, NAME_STREAM_CODEC, TIERS_STREAM_CODEC));
 		registeredWeaponTypes = readMap(buf, NAME_STREAM_CODEC, REGISTERED_WEAPON_TYPE_STREAM_CODEC);
-		registeredTypes = readMap(buf, RESOURCE_NAME_STREAM_CODEC, BlockingType.FULL_STREAM_CODEC);
 		configuredEntities = buf.readList(ENTITY_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		configuredItems = buf.readList(ITEM_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		configuredWeapons = buf.readList(WEAPON_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
@@ -291,7 +280,6 @@ public class ItemConfig extends AtlasConfig {
 		super.saveToNetwork(buf);
 		writeMap(buf, tiers, NAME_STREAM_CODEC, TIERS_STREAM_CODEC);
 		writeMap(buf, registeredWeaponTypes, NAME_STREAM_CODEC, REGISTERED_WEAPON_TYPE_STREAM_CODEC);
-		writeMap(buf, Combatify.registeredTypes, RESOURCE_NAME_STREAM_CODEC, BlockingType.FULL_STREAM_CODEC);
 		buf.writeCollection(configuredEntities, ENTITY_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		buf.writeCollection(configuredItems, ITEM_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
 		buf.writeCollection(configuredWeapons, WEAPON_WRAPPER_STREAM_CODEC.mapStream(buf1 -> (RegistryFriendlyByteBuf) buf1));
@@ -302,14 +290,10 @@ public class ItemConfig extends AtlasConfig {
 	public JsonElement saveExtra(JsonElement jsonElement) {
 		JsonElement items = new JsonArray();
 		JsonElement weapons = new JsonArray();
-		JsonElement defenders = new JsonArray();
 		JsonElement tiers = new JsonObject();
 		JsonElement entities = new JsonArray();
 		items = ITEMS_CODEC.codec().listOf().encode(configuredItems, JsonOps.INSTANCE, items).getOrThrow();
 		weapons = WEAPONS_CODEC_ENCODE.codec().listOf().encode(configuredWeapons, JsonOps.INSTANCE, weapons).getOrThrow();
-		ArrayList<BlockingType> blockingTypes = new ArrayList<>(registeredTypes.values());
-		blockingTypes.removeIf(defaultTypes::containsValue);
-		defenders = BlockingType.CODEC.listOf().encode(blockingTypes, JsonOps.INSTANCE, defenders).getOrThrow();
 		BiMap<String, ToolMaterialWrapper> addedTiers = HashBiMap.create();
 		Combatify.tiers.forEach((s, tier) -> {
 			if (!defaultTiers.containsValue(tier) && tier instanceof ToolMaterialWrapper toolMaterialWrapper)
@@ -320,7 +304,6 @@ public class ItemConfig extends AtlasConfig {
 		JsonObject result = jsonElement.getAsJsonObject();
 		result.add("items", items);
 		result.add("weapon_types", weapons);
-		result.add("blocking_types", defenders);
 		result.add("tiers", tiers);
 		result.add("entities", entities);
 		return Formula.CODEC.lenientOptionalFieldOf("armor_calculation").codec().encode(Optional.ofNullable(armourCalcs), JsonOps.INSTANCE, result).getOrThrow();

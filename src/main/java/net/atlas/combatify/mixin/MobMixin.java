@@ -108,7 +108,7 @@ public abstract class MobMixin extends LivingEntity implements MobExtensions {
 
 	@Unique
 	protected boolean canGuard() {
-		return Combatify.CONFIG.mobsCanGuard() && onGround() && !getBlockingType(this.getOffhandItem()).isEmpty() && !MethodHandler.getCooldowns(Mob.class.cast(this)).isOnCooldown(this.getOffhandItem());
+		return Combatify.CONFIG.mobsCanGuard() && onGround() && !getBlocker(this.getOffhandItem()).isEmpty() && !MethodHandler.getCooldowns(Mob.class.cast(this)).isOnCooldown(this.getOffhandItem());
 	}
 
 	@Unique
